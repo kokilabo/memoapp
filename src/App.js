@@ -44,6 +44,11 @@ function App() {
 
   const handleSubmit = async (memo) => {
     try {
+      // 空のメモは保存しない
+      if (!memo.title.trim() && !memo.content.trim()) {
+        return;
+      }
+      
       let newMemoRef;
       if (memo.id) {
         // 更新
@@ -55,19 +60,27 @@ function App() {
         });
       } else {
         // 新規作成
-        // eslint-disable-next-line no-unused-vars
         newMemoRef = await addDoc(collection(db, "memos"), {
           title: memo.title,
           content: memo.content,
           createdAt: new Date(),
           updatedAt: new Date()
         });
+        
+        // 新規作成の場合は、作成されたIDをセットして編集モードに移行
+        if (newMemoRef) {
+          setCurrentMemo({
+            id: newMemoRef.id,
+            title: memo.title,
+            content: memo.content,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          });
+        }
       }
+      
+      // 保存後に必ずメモを再取得して最新状態にする
       await fetchMemos();
-      setCurrentMemo(null);
-      // サイドバーを開く
-      setIsSidebarOpen(true);
-      localStorage.setItem('sidebarOpen', 'true');
     } catch (error) {
       console.error("Error saving memo: ", error);
     }
@@ -139,7 +152,7 @@ function App() {
               </div>
               <button
                 onClick={() => setCurrentMemo({})}
-                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100/80 rounded-lg transition-colors flex items-center gap-2"
+                className="p-2 bg-blue-500 text-white hover:bg-blue-600 rounded-lg transition-colors"
                 title="新規メモ"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
