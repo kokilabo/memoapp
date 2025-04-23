@@ -9,6 +9,19 @@ function MemoForm({ memo, onSubmit, onCancel }) {
   const saveTimeoutRef = useRef(null);
   const initialRenderRef = useRef(true);
 
+  // 空のメモを削除する関数
+  const checkAndDeleteEmptyMemo = () => {
+    if (memo?.id && title.trim() === '' && content.trim() === '') {
+      onSubmit({ id: memo.id, title: '', content: '' });
+      
+      setTitle('');
+      setContent('');
+      setLastSavedTitle('');
+      setLastSavedContent('');
+    }
+  };
+
+  // メモデータの初期化
   useEffect(() => {
     if (memo) {
       setTitle(memo.title || '');
@@ -22,7 +35,6 @@ function MemoForm({ memo, onSubmit, onCancel }) {
       setLastSavedContent('');
     }
     
-    // コンポーネントがマウントされた直後はinitialRenderをtrueに
     initialRenderRef.current = true;
     
     return () => {
@@ -32,21 +44,22 @@ function MemoForm({ memo, onSubmit, onCancel }) {
     };
   }, [memo]);
 
-  // タイトルまたは内容が変更されたときに自動保存
+  // 自動保存の処理
   useEffect(() => {
-    // 初期ロード時は保存しない
     if (initialRenderRef.current) {
       initialRenderRef.current = false;
       return;
     }
     
-    // タイピング中でない場合は保存しない
     if (!isTyping) {
       return;
     }
     
-    // 空のメモは保存しない
+    // 空のメモの処理
     if (title.trim() === '' && content.trim() === '') {
+      if (memo?.id) {
+        checkAndDeleteEmptyMemo();
+      }
       return;
     }
     
@@ -70,6 +83,13 @@ function MemoForm({ memo, onSubmit, onCancel }) {
     };
   }, [title, content, memo?.id, onSubmit, isTyping, lastSavedTitle, lastSavedContent]);
 
+  // フォーカスを失ったときの処理
+  const handleBlur = () => {
+    if (title.trim() === '' && content.trim() === '') {
+      checkAndDeleteEmptyMemo();
+    }
+  };
+
   const handleTitleChange = (e) => {
     setTitle(e.target.value);
     setIsTyping(true);
@@ -78,6 +98,18 @@ function MemoForm({ memo, onSubmit, onCancel }) {
   const handleContentChange = (e) => {
     setContent(e.target.value);
     setIsTyping(true);
+  };
+
+  // タイトル入力でEnterキーが押されたときの処理
+  const handleTitleKeyDown = (e) => {
+    // IMEの変換中は処理しない
+    if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+      e.preventDefault();
+      
+      setTimeout(() => {
+        document.getElementById('content').focus();
+      }, 10);
+    }
   };
 
   return (
@@ -97,17 +129,6 @@ function MemoForm({ memo, onSubmit, onCancel }) {
           </div>
           <span className="text-sm text-gray-500">{memo?.id ? '編集中' : '新規メモ'}</span>
         </div>
-        <div className="flex items-center gap-2">
-          {memo && (
-            <button
-              type="button"
-              onClick={onCancel}
-              className="px-3 py-1.5 text-sm text-gray-500 hover:text-gray-700 rounded-md hover:bg-gray-100/80 transition-colors"
-            >
-              キャンセル
-            </button>
-          )}
-        </div>
       </div>
       <div className="flex-1 p-8 space-y-6">
         <input
@@ -115,6 +136,8 @@ function MemoForm({ memo, onSubmit, onCancel }) {
           id="title"
           value={title}
           onChange={handleTitleChange}
+          onBlur={handleBlur}
+          onKeyDown={handleTitleKeyDown}
           className="w-full text-3xl font-medium text-gray-800 bg-transparent border-none focus:outline-none focus:ring-0 placeholder-gray-300"
           placeholder="無題"
         />
@@ -122,6 +145,7 @@ function MemoForm({ memo, onSubmit, onCancel }) {
           id="content"
           value={content}
           onChange={handleContentChange}
+          onBlur={handleBlur}
           className="w-full h-full min-h-[calc(100vh-20rem)] text-gray-700 bg-transparent border-none focus:outline-none focus:ring-0 resize-none placeholder-gray-300"
           placeholder="ここに内容を入力..."
         />

@@ -9,7 +9,7 @@ import './App.css';
 
 function App() {
   const [memos, setMemos] = useState([]);
-  const [currentMemo, setCurrentMemo] = useState({});
+  const [currentMemo, setCurrentMemo] = useState(null);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedMemos, setSelectedMemos] = useState([]);
   const [isDeleteAllModalOpen, setIsDeleteAllModalOpen] = useState(false);
@@ -18,17 +18,19 @@ function App() {
     return saved ? JSON.parse(saved) : false;
   });
 
-  // 選択モードを終了する際のクリーンアップ
+  // 選択モード終了時のクリーンアップ
   useEffect(() => {
     if (!isSelectionMode) {
       setSelectedMemos([]);
     }
   }, [isSelectionMode]);
 
+  // 初回読み込み時にメモを取得
   useEffect(() => {
     fetchMemos();
   }, []);
 
+  // Firestoreからメモを取得
   const fetchMemos = async () => {
     try {
       const querySnapshot = await getDocs(collection(db, "memos"));
@@ -42,10 +44,15 @@ function App() {
     }
   };
 
+  // メモの保存処理
   const handleSubmit = async (memo) => {
     try {
       // 空のメモは保存しない
       if (!memo.title.trim() && !memo.content.trim()) {
+        if (memo.id) {
+          await handleDelete(memo.id);
+          setCurrentMemo({});
+        }
         return;
       }
       
@@ -67,7 +74,6 @@ function App() {
           updatedAt: new Date()
         });
         
-        // 新規作成の場合は、作成されたIDをセットして編集モードに移行
         if (newMemoRef) {
           setCurrentMemo({
             id: newMemoRef.id,
@@ -79,20 +85,20 @@ function App() {
         }
       }
       
-      // 保存後に必ずメモを再取得して最新状態にする
       await fetchMemos();
     } catch (error) {
       console.error("Error saving memo: ", error);
     }
   };
 
+  // メモ編集モードに切り替え
   const handleEdit = (memo) => {
     setCurrentMemo(memo);
-    // メモを選択したらサイドバーを閉じる
     setIsSidebarOpen(false);
     localStorage.setItem('sidebarOpen', 'false');
   };
 
+  // メモ削除処理
   const handleDelete = async (id) => {
     try {
       await deleteDoc(doc(db, "memos", id));
@@ -102,10 +108,12 @@ function App() {
     }
   };
 
+  // 編集キャンセル
   const handleCancel = () => {
     setCurrentMemo(null);
   };
 
+  // サイドバー表示切替
   const toggleSidebar = () => {
     setIsSidebarOpen(prevState => {
       const newState = !prevState;
@@ -114,10 +122,12 @@ function App() {
     });
   };
 
+  // 全メモ削除モーダル表示
   const handleDeleteAll = () => {
     setIsDeleteAllModalOpen(true);
   };
 
+  // 全メモ削除実行
   const handleConfirmDeleteAll = async () => {
     try {
       const batch = writeBatch(db);
@@ -150,15 +160,26 @@ function App() {
                 </button>
                 <h1 className="text-lg font-medium text-gray-800">Simple note</h1>
               </div>
-              <button
-                onClick={() => setCurrentMemo({})}
-                className="p-2 bg-blue-500 text-white hover:bg-blue-600 rounded-lg transition-colors"
-                title="新規メモ"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-                </svg>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentMemo(null)}
+                  className="p-2 bg-gray-100 text-gray-600 hover:bg-gray-200 rounded-lg transition-colors"
+                  title="ホーム"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => setCurrentMemo({})}
+                  className="p-2 bg-blue-500 text-white hover:bg-blue-600 rounded-lg transition-colors"
+                  title="新規メモ"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
         </div>
