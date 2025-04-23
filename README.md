@@ -2,7 +2,7 @@
 
 Reactで作成されたシンプルなメモアプリです。Firebaseを使用してデータを保存します。
 
-https://github.com/user-attachments/assets/c1c0993e-8460-4198-9705-10f1283a2b4d
+https://github.com/user-attachments/assets/ff9c29a8-eaf2-4e50-84f1-9e70415215e7
 
 ## 機能
 
